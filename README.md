@@ -62,6 +62,9 @@ curl http://<EC2_IP>:5000/health
 - **[RUNBOOK.md](RUNBOOK.md)** - Operations and troubleshooting guide
 - **[EVIDENCE-GUIDE.md](EVIDENCE-GUIDE.md)** - Evidence collection for submission
 - **[SUBMISSION-CHECKLIST.md](SUBMISSION-CHECKLIST.md)** - Pre-submission checklist
+- **[INDUSTRY-STANDARDS.md](INDUSTRY-STANDARDS.md)** - Industry standards compliance
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+- **[SECURITY.md](SECURITY.md)** - Security policy
 
 ## 🏗️ Architecture
 

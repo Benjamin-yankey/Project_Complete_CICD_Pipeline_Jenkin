@@ -34,8 +34,18 @@ pipeline {
             steps {
                 echo 'Running unit tests...'
                 sh '''
-                    npm test
+                    npm test -- --coverage
                 '''
+            }
+            post {
+                always {
+                    junit 'test-results/*.xml'
+                    publishHTML([
+                        reportDir: 'coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report'
+                    ])
+                }
             }
         }
         
@@ -43,7 +53,13 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 sh '''
-                    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                    docker build \
+                      --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+                      --build-arg VERSION=${BUILD_NUMBER} \
+                      --label "org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+                      --label "org.opencontainers.image.version=${BUILD_NUMBER}" \
+                      --label "org.opencontainers.image.revision=${GIT_COMMIT}" \
+                      -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                     docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
                 '''
             }
@@ -75,7 +91,20 @@ pipeline {
                             # Pull and run new container
                             echo $REGISTRY_CREDS_PSW | docker login -u $REGISTRY_CREDS_USR --password-stdin
                             docker pull $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
-                            docker run -d --name ${CONTAINER_NAME} -p 5000:5000 $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
+                            docker run -d \
+                              --name ${CONTAINER_NAME} \
+                              --restart unless-stopped \
+                              --health-cmd="curl -f http://localhost:5000/health || exit 1" \
+                              --health-interval=30s \
+                              --health-timeout=3s \
+                              --health-retries=3 \
+                              -p 5000:5000 \
+                              -e APP_VERSION=${BUILD_NUMBER} \
+                              $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
+                            
+                            # Wait for health check
+                            sleep 10
+                            docker ps --filter name=${CONTAINER_NAME} --format "{{.Status}}"
                             
                             # Cleanup old images
                             docker image prune -af
@@ -97,10 +126,11 @@ EOF
             '''
         }
         success {
-            echo 'Pipeline completed successfully!'
+            echo '✅ Pipeline completed successfully!'
+            echo "Application deployed: http://${params.EC2_HOST}:5000"
         }
         failure {
-            echo 'Pipeline failed!'
+            echo '❌ Pipeline failed!'
         }
     }
 }

@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"
+  default     = "eu-west-1"
 }
 
 variable "project_name" {
@@ -43,17 +43,22 @@ variable "allowed_ips" {
 variable "jenkins_instance_type" {
   description = "Instance type for Jenkins server"
   type        = string
-  default     = "t3.medium"
+  default     = "t3.micro"
 }
 
 variable "app_instance_type" {
   description = "Instance type for application server"
   type        = string
-  default     = "t3.small"
+  default     = "t3.micro"
 }
 
 variable "jenkins_admin_password" {
   description = "Jenkins admin password"
   type        = string
   sensitive   = true
+}
+
+variable "key_name" {
+  description = "Name of the EC2 key pair"
+  type        = string
 }
