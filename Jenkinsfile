@@ -48,13 +48,14 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 sh '''
-                    docker build \
+                    docker buildx build --platform linux/amd64,linux/arm64 \
                       --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
                       --build-arg VERSION=${BUILD_NUMBER} \
                       --label "org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
                       --label "org.opencontainers.image.version=${BUILD_NUMBER}" \
                       --label "org.opencontainers.image.revision=${GIT_COMMIT}" \
-                      -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                      -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                      --load .
                     docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
                 '''
             }
@@ -65,10 +66,12 @@ pipeline {
                 echo 'Pushing image to registry...'
                 sh '''
                     echo $REGISTRY_CREDS_PSW | docker login -u $REGISTRY_CREDS_USR --password-stdin
-                    docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:${DOCKER_TAG}
-                    docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
-                    docker push $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:${DOCKER_TAG}
-                    docker push $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
+                    docker buildx build --platform linux/amd64,linux/arm64 \
+                      --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+                      --build-arg VERSION=${BUILD_NUMBER} \
+                      -t $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:${DOCKER_TAG} \
+                      -t $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest \
+                      --push .
                 '''
             }
         }
