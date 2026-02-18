@@ -38,3 +38,9 @@ variable "user_data" {
   type        = string
   default     = ""
 }
+
+variable "volume_size" {
+  description = "Root volume size in GB"
+  type        = number
+  default     = 20
+}

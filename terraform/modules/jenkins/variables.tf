@@ -33,6 +33,12 @@ variable "security_group_ids" {
   type        = list(string)
 }
 
+variable "volume_size" {
+  description = "Root volume size in GB"
+  type        = number
+  default     = 20
+}
+
 variable "secret_name" {
   description = "Name of the secret in AWS Secrets Manager"
   type        = string

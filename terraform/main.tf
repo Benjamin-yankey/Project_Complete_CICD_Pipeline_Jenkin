@@ -112,6 +112,7 @@ module "jenkins" {
   security_group_ids   = [module.security_groups.jenkins_sg_id]
   secret_name          = module.secrets.secret_name
   iam_instance_profile = module.iam.instance_profile_name
+  volume_size          = var.jenkins_volume_size
 }
 
 # Monitoring Module
@@ -137,4 +138,5 @@ module "app_server" {
   subnet_id          = module.vpc.public_subnets[1]
   security_group_ids = [module.security_groups.app_sg_id]
   user_data          = file("${path.module}/scripts/app-server-setup.sh")
+  volume_size        = var.app_volume_size
 }

@@ -54,6 +54,18 @@ variable "app_allowed_ips" {
   }
 }
 
+variable "jenkins_volume_size" {
+  description = "Root volume size for Jenkins instance in GB"
+  type        = number
+  default     = 20
+}
+
+variable "app_volume_size" {
+  description = "Root volume size for application instance in GB"
+  type        = number
+  default     = 20
+}
+
 variable "jenkins_instance_type" {
   description = "Instance type for Jenkins server"
   type        = string
