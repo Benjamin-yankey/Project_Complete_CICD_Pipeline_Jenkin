@@ -33,8 +33,12 @@ variable "security_group_ids" {
   type        = list(string)
 }
 
-variable "jenkins_admin_password" {
-  description = "Jenkins admin password"
+variable "secret_name" {
+  description = "Name of the secret in AWS Secrets Manager"
   type        = string
-  sensitive   = true
+}
+
+variable "iam_instance_profile" {
+  description = "IAM instance profile name"
+  type        = string
 }

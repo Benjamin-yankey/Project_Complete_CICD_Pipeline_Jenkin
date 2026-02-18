@@ -65,6 +65,15 @@ module "security_groups" {
   allowed_ips  = var.allowed_ips
 }
 
+# IAM Module
+module "iam" {
+  source = "./modules/iam"
+
+  project_name = var.project_name
+  environment  = var.environment
+  secret_arn   = module.secrets.secret_arn
+}
+
 # Secrets Manager Module
 module "secrets" {
   source = "./modules/secrets"
@@ -78,14 +87,15 @@ module "secrets" {
 module "jenkins" {
   source = "./modules/jenkins"
 
-  project_name           = var.project_name
-  environment            = var.environment
-  ami_id                 = data.aws_ami.amazon_linux.id
-  instance_type          = var.jenkins_instance_type
-  key_name               = module.keypair.key_name
-  subnet_id              = module.vpc.public_subnets[0]
-  security_group_ids     = [module.security_groups.jenkins_sg_id]
-  jenkins_admin_password = var.jenkins_admin_password
+  project_name         = var.project_name
+  environment          = var.environment
+  ami_id               = data.aws_ami.amazon_linux.id
+  instance_type        = var.jenkins_instance_type
+  key_name             = module.keypair.key_name
+  subnet_id            = module.vpc.public_subnets[0]
+  security_group_ids   = [module.security_groups.jenkins_sg_id]
+  secret_name          = module.secrets.secret_name
+  iam_instance_profile = module.iam.instance_profile_name
 }
 
 # Application EC2 Module

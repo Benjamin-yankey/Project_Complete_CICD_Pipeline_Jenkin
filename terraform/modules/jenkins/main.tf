@@ -4,9 +4,11 @@ resource "aws_instance" "jenkins" {
   key_name               = var.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids = var.security_group_ids
+  iam_instance_profile   = var.iam_instance_profile
 
   user_data = templatefile("${path.module}/jenkins-setup.sh", {
-    jenkins_admin_password = var.jenkins_admin_password
+    secret_name = var.secret_name
+    aws_region  = data.aws_region.current.name
   })
 
   root_block_device {
@@ -20,6 +22,8 @@ resource "aws_instance" "jenkins" {
     Type = "Jenkins"
   }
 }
+
+data "aws_region" "current" {}
 
 resource "aws_eip" "jenkins" {
   instance = aws_instance.jenkins.id

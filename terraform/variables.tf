@@ -37,7 +37,12 @@ variable "private_subnets" {
 variable "allowed_ips" {
   description = "List of allowed IP addresses for SSH and Jenkins access"
   type        = list(string)
-  default     = ["0.0.0.0/0"] # Change this to your IP for security
+  default     = ["0.0.0.0/0"]
+
+  validation {
+    condition     = length(var.allowed_ips) > 0
+    error_message = "At least one IP address must be specified. Use YOUR_IP/32 for security."
+  }
 }
 
 variable "jenkins_instance_type" {

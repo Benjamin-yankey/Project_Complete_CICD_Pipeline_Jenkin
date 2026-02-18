@@ -33,15 +33,16 @@ This project demonstrates a complete CI/CD pipeline with:
 git clone <your-repo-url>
 cd Project_Complete_CICD_Pipeline_Jenkins
 
-# 2. Deploy infrastructure
+# 2. Deploy infrastructure (SECURE)
 cd terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
-terraform init
-terraform apply
+cp terraform.tfvars.example.secure terraform.tfvars
+# Edit terraform.tfvars: Set allowed_ips to YOUR_IP/32
+./validate-security.sh  # Validate security configuration
+./deploy-secure.sh      # Automated secure deployment
 
 # 3. Configure Jenkins
 # Access Jenkins at http://<JENKINS_IP>:8080
+# Password in AWS Secrets Manager
 # Add credentials: registry_creds, ec2_ssh
 
 # 4. Create and run pipeline
@@ -57,6 +58,8 @@ curl http://<EC2_IP>:5000/health
 
 ## 📋 Documentation
 
+- **[SECURITY-FIXES-SUMMARY.md](SECURITY-FIXES-SUMMARY.md)** - Security vulnerability fixes implemented
+- **[SECURITY-REMEDIATION.md](SECURITY-REMEDIATION.md)** - Detailed security remediation guide
 - **[QUICKSTART.md](QUICKSTART.md)** - Get started in 15 minutes
 - **[SETUP-GUIDE.md](SETUP-GUIDE.md)** - Detailed setup instructions
 - **[RUNBOOK.md](RUNBOOK.md)** - Operations and troubleshooting guide
@@ -194,7 +197,10 @@ This project meets all requirements:
 ## 📊 Project Highlights
 
 - **Infrastructure as Code**: Complete Terraform modules for AWS
-- **Security**: Credentials managed via Jenkins Credentials Store
+- **Security Hardened**: Restricted access, IAM roles, Secrets Manager integration
+- **Automated Security Validation**: Pre-deployment security checks
+- **Secrets Management**: AWS Secrets Manager for sensitive data
+- **Network Security**: Restricted egress rules, security group best practices
 - **Automation**: Full CI/CD automation from commit to deployment
 - **Monitoring**: Health check endpoints and logging
 - **Documentation**: Comprehensive guides and runbooks
