@@ -74,37 +74,47 @@ pipeline {
         }
         
         stage('Deploy') {
+            when {
+                expression { params.EC2_HOST != null && params.EC2_HOST != '' }
+            }
             steps {
                 echo 'Deploying to EC2...'
-                withCredentials([sshUserPrivateKey(credentialsId: 'ec2_ssh', keyFileVariable: 'SSH_KEY')]) {
-                    sh '''
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ec2-user@${EC2_HOST} << EOF
-                            # Stop and remove old container
-                            docker stop ${CONTAINER_NAME} || true
-                            docker rm ${CONTAINER_NAME} || true
-                            
-                            # Pull and run new container
-                            echo $REGISTRY_CREDS_PSW | docker login -u $REGISTRY_CREDS_USR --password-stdin
-                            docker pull $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
-                            docker run -d \
-                              --name ${CONTAINER_NAME} \
-                              --restart unless-stopped \
-                              --health-cmd="curl -f http://localhost:5000/health || exit 1" \
-                              --health-interval=30s \
-                              --health-timeout=3s \
-                              --health-retries=3 \
-                              -p 5000:5000 \
-                              -e APP_VERSION=${BUILD_NUMBER} \
-                              $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
-                            
-                            # Wait for health check
-                            sleep 10
-                            docker ps --filter name=${CONTAINER_NAME} --format "{{.Status}}"
-                            
-                            # Cleanup old images
-                            docker image prune -af
+                script {
+                    try {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'ec2_ssh', keyFileVariable: 'SSH_KEY')]) {
+                            sh '''
+                                ssh -i $SSH_KEY -o StrictHostKeyChecking=no ec2-user@${EC2_HOST} << EOF
+                                    # Stop and remove old container
+                                    docker stop ${CONTAINER_NAME} || true
+                                    docker rm ${CONTAINER_NAME} || true
+                                    
+                                    # Pull and run new container
+                                    echo $REGISTRY_CREDS_PSW | docker login -u $REGISTRY_CREDS_USR --password-stdin
+                                    docker pull $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
+                                    docker run -d \
+                                      --name ${CONTAINER_NAME} \
+                                      --restart unless-stopped \
+                                      --health-cmd="curl -f http://localhost:5000/health || exit 1" \
+                                      --health-interval=30s \
+                                      --health-timeout=3s \
+                                      --health-retries=3 \
+                                      -p 5000:5000 \
+                                      -e APP_VERSION=${BUILD_NUMBER} \
+                                      $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
+                                    
+                                    # Wait for health check
+                                    sleep 10
+                                    docker ps --filter name=${CONTAINER_NAME} --format "{{.Status}}"
+                                    
+                                    # Cleanup old images
+                                    docker image prune -af
 EOF
-                    '''
+                            '''
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️ Deploy skipped: ${e.message}"
+                        echo "To enable deployment, add 'ec2_ssh' credential in Jenkins"
+                    }
                 }
             }
         }
