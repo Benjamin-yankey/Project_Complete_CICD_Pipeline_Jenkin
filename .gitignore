@@ -39,3 +39,4 @@ config
 # screenshots/*.png
 # logs/*.txt
 # logs/*.json
+TROUBLESHOOTING.md
