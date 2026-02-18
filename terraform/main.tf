@@ -53,6 +53,7 @@ module "keypair" {
 
   project_name = var.project_name
   environment  = var.environment
+  key_name     = var.key_name
 }
 
 # Security Groups Module
