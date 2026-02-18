@@ -76,9 +76,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying to EC2...'
-                sshagent(['ec2_ssh']) {
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2_ssh', keyFileVariable: 'SSH_KEY')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ec2-user@${EC2_HOST} << EOF
+                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ec2-user@${EC2_HOST} << EOF
                             # Stop and remove old container
                             docker stop ${CONTAINER_NAME} || true
                             docker rm ${CONTAINER_NAME} || true
