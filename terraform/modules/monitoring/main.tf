@@ -1,6 +1,6 @@
 resource "aws_cloudwatch_log_group" "jenkins" {
   name              = "/aws/ec2/${var.project_name}-${var.environment}-jenkins"
-  retention_in_days = 7
+  retention_in_days = 90
 
   tags = {
     Name = "${var.project_name}-${var.environment}-jenkins-logs"
@@ -9,7 +9,7 @@ resource "aws_cloudwatch_log_group" "jenkins" {
 
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/aws/ec2/${var.project_name}-${var.environment}-app"
-  retention_in_days = 7
+  retention_in_days = 90
 
   tags = {
     Name = "${var.project_name}-${var.environment}-app-logs"
@@ -63,7 +63,7 @@ resource "aws_flow_log" "vpc" {
 
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   name              = "/aws/vpc/${var.project_name}-${var.environment}"
-  retention_in_days = 7
+  retention_in_days = 90
 
   tags = {
     Name = "${var.project_name}-${var.environment}-vpc-flow-logs"
