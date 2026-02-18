@@ -40,12 +40,6 @@ pipeline {
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'test-results/*.xml'
-                    publishHTML([
-                        allowMissing: true,
-                        reportDir: 'coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Coverage Report'
-                    ])
                 }
             }
         }
