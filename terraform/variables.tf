@@ -35,13 +35,22 @@ variable "private_subnets" {
 }
 
 variable "allowed_ips" {
-  description = "List of allowed IP addresses for SSH and Jenkins access"
+  description = "List of allowed IP addresses for SSH and Jenkins access. MUST be set to specific IPs (e.g., YOUR_IP/32)"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
 
   validation {
-    condition     = length(var.allowed_ips) > 0
-    error_message = "At least one IP address must be specified. Use YOUR_IP/32 for security."
+    condition     = length(var.allowed_ips) > 0 && !contains(var.allowed_ips, "0.0.0.0/0")
+    error_message = "allowed_ips cannot be 0.0.0.0/0. Specify your IP address (e.g., YOUR_IP/32) for security."
+  }
+}
+
+variable "app_allowed_ips" {
+  description = "List of allowed IP addresses for application port 5000. Use specific IPs or load balancer security group"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.app_allowed_ips) > 0 && !contains(var.app_allowed_ips, "0.0.0.0/0")
+    error_message = "app_allowed_ips cannot be 0.0.0.0/0. Specify trusted IPs or use a load balancer."
   }
 }
 

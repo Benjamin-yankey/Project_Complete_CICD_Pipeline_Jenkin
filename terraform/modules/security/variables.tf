@@ -17,3 +17,13 @@ variable "allowed_ips" {
   description = "List of allowed IP addresses"
   type        = list(string)
 }
+
+variable "app_allowed_ips" {
+  description = "List of allowed IP addresses for application port"
+  type        = list(string)
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  type        = string
+}

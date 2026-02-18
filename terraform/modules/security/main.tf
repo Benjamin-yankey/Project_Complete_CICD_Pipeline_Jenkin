@@ -18,30 +18,45 @@ resource "aws_security_group" "jenkins" {
     cidr_blocks = var.allowed_ips
   }
 
-  # Restricted egress - HTTPS for package downloads and Docker Hub
+  # Egress to VPC CIDR only
   egress {
-    description = "HTTPS outbound"
+    description = "HTTPS to VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    description = "HTTP to VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    description = "DNS"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # Docker Hub and package repos
+  egress {
+    description = "HTTPS to internet for packages"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP for package repositories
   egress {
-    description = "HTTP outbound"
+    description = "HTTP to internet for packages"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # DNS
-  egress {
-    description = "DNS"
-    from_port   = 53
-    to_port     = 53
-    protocol    = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -71,7 +86,7 @@ resource "aws_security_group" "app" {
     from_port   = 5000
     to_port     = 5000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.app_allowed_ips
   }
 
   ingress {
@@ -82,30 +97,37 @@ resource "aws_security_group" "app" {
     security_groups = [aws_security_group.jenkins.id]
   }
 
-  # Restricted egress - HTTPS for Docker Hub
+  # Egress to VPC CIDR only
   egress {
-    description = "HTTPS outbound"
+    description = "HTTPS to VPC"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
-  # HTTP for package repositories
   egress {
-    description = "HTTP outbound"
+    description = "HTTP to VPC"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
-  # DNS
   egress {
     description = "DNS"
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # Docker Hub access
+  egress {
+    description = "HTTPS to internet for Docker"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 

@@ -1,38 +1,45 @@
 #!/bin/bash
 # Security Configuration Validator
-# Run this before terraform apply to validate security settings
 
 set -e
 
-echo "🔒 Security Configuration Validator"
+echo "Security Configuration Validator"
 echo "===================================="
 echo ""
 
 ERRORS=0
 WARNINGS=0
 
-# Check if terraform.tfvars exists
 if [ ! -f "terraform.tfvars" ]; then
-    echo "❌ ERROR: terraform.tfvars not found"
+    echo "[ERROR] terraform.tfvars not found"
     ERRORS=$((ERRORS + 1))
 else
-    echo "✅ terraform.tfvars found"
+    echo "[OK] terraform.tfvars found"
     
-    # Check allowed_ips configuration
     if grep -q 'allowed_ips.*=.*\["0.0.0.0/0"\]' terraform.tfvars; then
-        echo "⚠️  WARNING: allowed_ips is set to 0.0.0.0/0 (open to internet)"
-        echo "   Recommendation: Set to your IP address (e.g., [\"$(curl -s ifconfig.me)/32\"])"
-        WARNINGS=$((WARNINGS + 1))
-    else
-        echo "✅ allowed_ips is restricted"
-    fi
-    
-    # Check if jenkins_admin_password is set
-    if ! grep -q 'jenkins_admin_password' terraform.tfvars; then
-        echo "❌ ERROR: jenkins_admin_password not set in terraform.tfvars"
+        echo "[ERROR] allowed_ips is set to 0.0.0.0/0 (CRITICAL SECURITY RISK)"
+        echo "   Fix: Set to your IP address (e.g., [\"$(curl -s ifconfig.me)/32\"])"
         ERRORS=$((ERRORS + 1))
     else
-        echo "✅ jenkins_admin_password is configured"
+        echo "[OK] allowed_ips is restricted"
+    fi
+    
+    if grep -q 'app_allowed_ips.*=.*\["0.0.0.0/0"\]' terraform.tfvars; then
+        echo "[ERROR] app_allowed_ips is set to 0.0.0.0/0 (CRITICAL SECURITY RISK)"
+        echo "   Fix: Set to your IP address or load balancer"
+        ERRORS=$((ERRORS + 1))
+    elif ! grep -q 'app_allowed_ips' terraform.tfvars; then
+        echo "[ERROR] app_allowed_ips not set in terraform.tfvars"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo "[OK] app_allowed_ips is configured"
+    fi
+    
+    if ! grep -q 'jenkins_admin_password' terraform.tfvars; then
+        echo "[ERROR] jenkins_admin_password not set"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo "[OK] jenkins_admin_password is configured"
     fi
 fi
 
@@ -44,13 +51,12 @@ echo "Warnings: $WARNINGS"
 echo ""
 
 if [ $ERRORS -gt 0 ]; then
-    echo "❌ Security validation FAILED. Please fix errors before deploying."
+    echo "[FAIL] Security validation FAILED. Fix errors before deploying."
     exit 1
 elif [ $WARNINGS -gt 0 ]; then
-    echo "⚠️  Security validation passed with warnings."
-    echo "   Consider addressing warnings for production deployments."
+    echo "[WARN] Security validation passed with warnings."
     exit 0
 else
-    echo "✅ Security validation PASSED. Safe to deploy."
+    echo "[PASS] Security validation PASSED. Safe to deploy."
     exit 0
 fi

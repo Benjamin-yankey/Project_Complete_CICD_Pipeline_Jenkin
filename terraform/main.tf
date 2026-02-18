@@ -59,10 +59,25 @@ module "keypair" {
 module "security_groups" {
   source = "./modules/security"
 
-  project_name = var.project_name
-  environment  = var.environment
-  vpc_id       = module.vpc.vpc_id
-  allowed_ips  = var.allowed_ips
+  project_name    = var.project_name
+  environment     = var.environment
+  vpc_id          = module.vpc.vpc_id
+  vpc_cidr        = var.vpc_cidr
+  allowed_ips     = var.allowed_ips
+  app_allowed_ips = var.app_allowed_ips
+}
+
+# VPC Endpoints Module
+module "vpc_endpoints" {
+  source = "./modules/vpc-endpoints"
+
+  project_name      = var.project_name
+  environment       = var.environment
+  vpc_id            = module.vpc.vpc_id
+  vpc_cidr          = var.vpc_cidr
+  aws_region        = var.aws_region
+  subnet_ids        = module.vpc.public_subnets
+  route_table_ids   = module.vpc.public_route_table_ids
 }
 
 # IAM Module
