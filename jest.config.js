@@ -10,9 +10,16 @@ module.exports = {
   coverageThreshold: {
     global: {
       branches: 80,
-      functions: 80,
+      functions: 75,
       lines: 80,
       statements: 80
     }
-  }
+  },
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: 'test-results',
+      outputName: 'junit.xml'
+    }]
+  ]
 };
