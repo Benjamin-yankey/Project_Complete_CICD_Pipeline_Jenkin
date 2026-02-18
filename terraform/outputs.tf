@@ -32,3 +32,14 @@ output "ssh_app_server" {
   description = "SSH command for application server"
   value       = "ssh -i ${module.keypair.private_key_filename} ec2-user@${module.app_server.public_ip}"
 }
+
+output "jenkins_password_secret_name" {
+  description = "AWS Secrets Manager secret name for Jenkins admin password"
+  value       = module.secrets.secret_name
+}
+
+output "jenkins_password_secret_arn" {
+  description = "AWS Secrets Manager secret ARN for Jenkins admin password"
+  value       = module.secrets.secret_arn
+  sensitive   = true
+}

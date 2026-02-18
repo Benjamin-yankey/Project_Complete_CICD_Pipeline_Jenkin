@@ -65,6 +65,15 @@ module "security_groups" {
   allowed_ips  = var.allowed_ips
 }
 
+# Secrets Manager Module
+module "secrets" {
+  source = "./modules/secrets"
+
+  project_name           = var.project_name
+  environment            = var.environment
+  jenkins_admin_password = var.jenkins_admin_password
+}
+
 # Jenkins EC2 Module
 module "jenkins" {
   source = "./modules/jenkins"
