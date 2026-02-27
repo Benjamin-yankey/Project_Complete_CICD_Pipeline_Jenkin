@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Defense — CI/CD Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0e0e;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --rust: #c94f2c;
+    --teal: #1a6b6b;
+    --gold: #c9900e;
+    --muted: #6b6358;
+    --border: #c8bfaf;
+    --green: #2d6a4f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 300;
+    line-height: 1.75;
+    font-size: 17px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 58px;
+    border-bottom: 3px solid var(--gold);
+  }
+
+  header .brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  header .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+
+  /* HERO */
+  .hero {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 5rem 3rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    border: 1.5px solid rgba(201,144,14,0.15);
+    border-radius: 50%;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 35%;
+    width: 260px; height: 260px;
+    border: 1px solid rgba(201,79,44,0.12);
+    border-radius: 50%;
+  }
+
+  .hero-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 1.2rem;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 5vw, 4.2rem);
+    font-weight: 900;
+    line-height: 1.08;
+    max-width: 720px;
+    margin-bottom: 1.2rem;
+  }
+
+  .hero h1 span { color: var(--rust); }
+
+  .hero-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+
+  .meta-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    border: 1px solid rgba(245,240,232,0.2);
+    padding: 5px 14px;
+    border-radius: 100px;
+    opacity: 0.75;
+    letter-spacing: 0.08em;
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--cream);
+    border-left: 4px solid var(--gold);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 3rem;
+  }
+
+  .toc-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    gap: 5rem;
+    flex-wrap: wrap;
+  }
+
+  .toc h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.8rem;
+  }
+
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+  }
+
+  .toc ol li {
+    counter-increment: toc;
+    font-size: 0.88rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0;
+  }
+
+  .toc ol li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--rust);
+    min-width: 22px;
+  }
+
+  .toc ol li a { color: inherit; text-decoration: none; transition: color 0.15s; }
+  .toc ol li a:hover { color: var(--ink); }
+
+  /* LAYOUT */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* SECTION */
+  .section {
+    padding: 4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .section-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--rust);
+    white-space: nowrap;
+  }
+
+  .section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+
+  .section h3 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 2rem 0 0.5rem;
+    color: var(--teal);
+  }
+
+  .section p {
+    margin-bottom: 1rem;
+    color: #2a2520;
+  }
+
+  /* SCRIPT BOX */
+  .script-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--teal);
+    border-radius: 2px;
+    padding: 1.6rem 1.8rem;
+    margin: 1.5rem 0;
+    position: relative;
+  }
+
+  .script-box::before {
+    content: '"';
+    font-family: 'Playfair Display', serif;
+    font-size: 5rem;
+    color: var(--teal);
+    opacity: 0.1;
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    line-height: 1;
+  }
+
+  .script-box p {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #1a1a1a;
+    font-style: italic;
+    margin: 0;
+  }
+
+  .script-box p strong {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--teal);
+  }
+
+  /* STAGE PIPELINE */
+  .pipeline-stages {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+
+  .stage {
+    background: white;
+    padding: 1.3rem 1.4rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    transition: background 0.15s;
+  }
+
+  .stage:hover { background: var(--cream); }
+
+  .stage-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--rust);
+    background: rgba(201,79,44,0.08);
+    padding: 2px 6px;
+    border-radius: 2px;
+    min-width: 28px;
+    text-align: center;
+    margin-top: 3px;
+  }
+
+  .stage-content .stage-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.25rem;
+  }
+
+  .stage-content p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: #1a1a1a;
+    color: #e8e0d0;
+    border-radius: 4px;
+    padding: 1.4rem 1.6rem;
+    margin: 1.2rem 0;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-block .code-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.7;
+    margin-bottom: 0.8rem;
+    display: block;
+  }
+
+  .code-block pre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    white-space: pre;
+  }
+
+  .code-block .comment { color: #7a8a7a; }
+  .code-block .keyword { color: #c9900e; }
+  .code-block .string { color: #7ec8a0; }
+  .code-block .module-name { color: #7ab8d4; }
+
+  /* ARCHITECTURE FLOW */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+    padding: 1.4rem 1.6rem;
+    background: var(--ink);
+    border-radius: 4px;
+  }
+
+  .arch-node {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .arch-node.github   { background: #2d3748; color: #e2e8f0; }
+  .arch-node.jenkins  { background: var(--rust); color: white; }
+  .arch-node.docker   { background: #0db7ed22; color: #7dd3fc; border: 1px solid #0db7ed44; }
+  .arch-node.aws      { background: #c9900e22; color: var(--gold); border: 1px solid #c9900e44; }
+  .arch-node.app      { background: var(--teal); color: white; }
+
+  .arch-arrow { color: rgba(255,255,255,0.3); font-size: 1rem; }
+
+  /* SECURITY CARDS */
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .sec-card {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 1.6rem;
+    border-radius: 3px;
+    border-top: 3px solid var(--gold);
+  }
+
+  .sec-icon { font-size: 1.6rem; margin-bottom: 0.7rem; display: block; }
+
+  .sec-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+
+  .sec-card p {
+    font-size: 0.84rem;
+    opacity: 0.75;
+    line-height: 1.6;
+    color: var(--paper);
+    margin: 0;
+  }
+
+  /* Q&A */
+  .qa-list { margin: 1.5rem 0; }
+
+  .qa-item {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 0.8rem;
+    overflow: hidden;
+    background: white;
+  }
+
+  .qa-question {
+    padding: 1rem 1.4rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--cream);
+    cursor: default;
+  }
+
+  .qa-q-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    background: var(--rust);
+    color: white;
+    padding: 2px 7px;
+    border-radius: 2px;
+    min-width: 22px;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  .qa-question p {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .qa-answer {
+    padding: 1rem 1.4rem 1rem 3.2rem;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.65;
+    border-top: 1px solid var(--border);
+  }
+
+  .qa-answer strong { color: var(--teal); }
+
+  /* TIMELINE / DURATION */
+  .timeline {
+    display: flex;
+    gap: 0;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .tl-item {
+    flex: 1;
+    min-width: 120px;
+    padding: 1rem 1.2rem;
+    background: white;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .tl-item:last-child { border-right: none; }
+  .tl-item:hover { background: var(--cream); }
+
+  .tl-mins {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--rust);
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .tl-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+
+  /* CALLOUT */
+  .callout {
+    background: var(--cream);
+    border-left: 4px solid var(--gold);
+    padding: 1.2rem 1.6rem;
+    margin: 1.5rem 0;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .callout-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.4rem;
+  }
+
+  .callout p { font-size: 0.92rem; margin: 0; }
+
+  /* ROADMAP */
+  .roadmap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .roadmap-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.2rem 1.4rem;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  .roadmap-icon { font-size: 1.5rem; min-width: 32px; }
+
+  .roadmap-item .rm-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.3rem;
+  }
+
+  .roadmap-item p {
+    font-size: 0.84rem;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  /* SPEAKER NOTE */
+  .speaker-note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    background: rgba(201,144,14,0.08);
+    border: 1px dashed rgba(201,144,14,0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 2px;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    margin-top: 3rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  footer span { opacity: 0.45; }
+
+  @media (max-width: 650px) {
+    header { padding: 0 1.2rem; }
+    .hero { padding: 3rem 1.5rem 2.5rem; }
+    .toc { padding: 1.5rem; }
+    .page { padding: 0 1.2rem; }
+    .pipeline-stages { grid-template-columns: 1fr 1fr; }
+    .security-grid { grid-template-columns: 1fr; }
+    .roadmap { grid-template-columns: 1fr; }
+    footer { padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">⬛ Project Defense Guide</div>
+  <div class="tag">🎓 20 Mins · CI/CD Pipeline</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="page">
+    <div class="hero-eyebrow">Final Year Project · Defense Script</div>
+    <h1>Complete <span>CI/CD Pipeline</span><br>Defense Playbook</h1>
+    <div class="hero-meta">
+      <span class="meta-chip">🔧 Jenkins</span>
+      <span class="meta-chip">🐳 Docker</span>
+      <span class="meta-chip">☁️ AWS EC2</span>
+      <span class="meta-chip">🏗️ Terraform</span>
+      <span class="meta-chip">⏱ 20 Minutes</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-inner">
+    <div>
+      <h3>Defense Sections</h3>
+      <ol>
+        <li><a href="#s1">Introduction — Setting the Stage</a></li>
+        <li><a href="#s2">Architecture & Design</a></li>
+        <li><a href="#s3">The Pipeline — Code to Production</a></li>
+        <li><a href="#s4">Security — Protecting the Pipeline</a></li>
+        <li><a href="#s5">Testing & Quality</a></li>
+        <li><a href="#s6">Closing & Future Roadmap</a></li>
+        <li><a href="#s7">Q&A — Common Defense Questions</a></li>
+      </ol>
+    </div>
+    <div>
+      <h3>Time Breakdown</h3>
+      <div class="timeline" style="margin:0; flex-direction:column; border:none; gap:0.2rem; background:transparent;">
+        <div style="display:flex; align-items:center; gap:0.8rem; font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--muted);">
+          <span style="color:var(--rust); font-weight:500; min-width:40px;">02 min</span> Introduction
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--muted);">
+          <span style="color:var(--rust); font-weight:500; min-width:40px;">03 min</span> Architecture
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--muted);">
+          <span style="color:var(--rust); font-weight:500; min-width:40px;">05 min</span> Pipeline
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--muted);">
+          <span style="color:var(--rust); font-weight:500; min-width:40px;">03 min</span> Security
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--muted);">
+          <span style="color:var(--rust); font-weight:500; min-width:40px;">02 min</span> Testing
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; font-family:'IBM Plex Mono',monospace; font-size:0.72rem; color:var(--muted);">
+          <span style="color:var(--rust); font-weight:500; min-width:40px;">05 min</span> Closing & Q&A
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- SECTION 1 -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-number">01 · 2 min</div>
+      <h2>Introduction: Setting the Stage</h2>
+    </div>
+    <div class="speaker-note">🎤 Speak with confidence. Look at the examiners directly.</div>
+
+    <div class="script-box">
+      <p>"Good morning/afternoon everyone. Today, I am excited to present my project: a <strong>production-ready CI/CD pipeline.</strong><br><br>
+      In modern software development, manual deployments are the enemy of speed and reliability. They are error-prone, hard to document, and slow down the delivery of value. My goal with this project was to solve these problems by building a fully automated bridge between code and production.<br><br>
+      I've built a Node.js web application that is automatically tested, containerized with <strong>Docker</strong>, and deployed to the <strong>AWS Cloud</strong> using a <strong>Jenkins</strong> pipeline. What makes this project stand out is that the entire infrastructure — the servers, the networks, and the security rules — was not built manually in the AWS console. Instead, I used <strong>Terraform</strong> as Infrastructure as Code to ensure that my environment is secure, reproducible, and scalable."</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">💡 Key Message to Land</div>
+      <p>You are solving a real problem. Manual deployments = slow, risky. Your pipeline = fast, reliable, automated.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-number">02 · 3 min</div>
+      <h2>Architecture & Design: The Big Picture</h2>
+    </div>
+    <div class="speaker-note">🖥️ Point to your screen/diagram while speaking.</div>
+
+    <div class="script-box">
+      <p>"Let's look at how the system is structured. I've followed a <strong>decoupled architecture</strong> where the automation server and the application server live in a secure VPC."</p>
+    </div>
+
+    <div class="arch-flow">
+      <span class="arch-node github">GitHub</span>
+      <span class="arch-arrow">→</span>
+      <span class="arch-node jenkins">Jenkins</span>
+      <span class="arch-arrow">→</span>
+      <span class="arch-node docker">Docker Hub</span>
+      <span class="arch-arrow">→</span>
+      <span class="arch-node aws">AWS EC2</span>
+      <span class="arch-arrow">→</span>
+      <span class="arch-node app">Live App</span>
+    </div>
+
+    <h3>How the Pieces Fit Together</h3>
+    <p><strong>GitHub</strong> acts as our source of truth — every push triggers the entire pipeline automatically. <strong>Jenkins</strong> is the engine, listening for changes and executing each stage. <strong>Docker Hub</strong> is our artifact registry, storing versioned and immutable images. <strong>AWS EC2</strong> hosts the final running application inside a hardened VPC.</p>
+
+    <h3>Infrastructure as Code with Terraform</h3>
+    <p>Instead of clicking buttons in the AWS Console, I modularized my infrastructure. This means I can tear down and rebuild this entire environment in minutes with a single command.</p>
+
+    <div class="code-block">
+      <span class="code-label">HCL · terraform/modules/vpc/main.tf</span>
+      <pre><span class="comment">// "This module ensures our network is isolated and secure."</span>
+<span class="keyword">module</span> <span class="string">"vpc"</span> {
+  source         = <span class="string">"./modules/vpc"</span>
+  vpc_cidr       = <span class="module-name">var</span>.vpc_cidr
+  public_subnets = <span class="module-name">var</span>.public_subnets
+}</pre>
+    </div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="section-number">03 · 5 min</div>
+      <h2>The Pipeline: Code to Production</h2>
+    </div>
+    <div class="speaker-note">❤️ This is the heart of your project. Spend the most time here.</div>
+
+    <div class="script-box">
+      <p>"The heart of the project is the <strong>Jenkinsfile</strong> — this is our 'Pipeline-as-Code'. I've designed it with six critical stages that take the code all the way from a developer's push to a live, running container in AWS."</p>
+    </div>
+
+    <div class="pipeline-stages">
+      <div class="stage">
+        <span class="stage-num">01</span>
+        <div class="stage-content">
+          <div class="stage-name">Checkout</div>
+          <p>Pull the latest code from the GitHub repository. This is our starting point — always working from the most recent source of truth.</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">02</span>
+        <div class="stage-content">
+          <div class="stage-name">Install</div>
+          <p>Use <code style="font-family:'IBM Plex Mono',monospace;font-size:0.8em;background:#f0f0f0;padding:1px 4px;border-radius:2px;">npm ci</code> for clean, predictable dependency installation — no surprises from mismatched package versions.</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">03</span>
+        <div class="stage-content">
+          <div class="stage-name">Test</div>
+          <p>Run unit tests with Jest. If a single test fails, the pipeline stops immediately. We <em>never</em> ship broken code to production.</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">04</span>
+        <div class="stage-content">
+          <div class="stage-name">Docker Build</div>
+          <p>Package the application into a lightweight, immutable container image. The app and all its dependencies are sealed in one portable unit.</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">05</span>
+        <div class="stage-content">
+          <div class="stage-name">Push</div>
+          <p>Securely upload the versioned image to Docker Hub. This acts as our artifact registry — every build has a unique, traceable version tag.</p>
+        </div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">06</span>
+        <div class="stage-content">
+          <div class="stage-name">Deploy</div>
+          <p>SSH into the production EC2 server, pull the new image, and swap containers with zero downtime. The old version stays live until the new one is ready.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="section-number">04 · 3 min</div>
+      <h2>Security: Protecting the Pipeline</h2>
+    </div>
+    <div class="speaker-note">🛡️ Examiners love security. Speak slowly and confidently here.</div>
+
+    <div class="script-box">
+      <p>"Security wasn't an afterthought. I've implemented <strong>three layers of protection</strong> — at the secret level, at the network level, and at the validation level."</p>
+    </div>
+
+    <div class="security-grid">
+      <div class="sec-card">
+        <span class="sec-icon">🔐</span>
+        <div class="sec-title">Secrets Management</div>
+        <p>No hardcoded passwords — ever. AWS Secrets Manager stores Jenkins credentials. The Jenkins Credentials Store manages SSH keys securely. Nothing sensitive touches the codebase.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">🔒</span>
+        <div class="sec-title">Network Hardening</div>
+        <p>Terraform enforces strict Security Group rules. Only a specific, allowlisted IP address can access the Jenkins dashboard. The application server is not publicly exposed.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">✅</span>
+        <div class="sec-title">Pre-Deploy Validation</div>
+        <p>A custom <code style="font-family:'IBM Plex Mono',monospace;font-size:0.8em;">validate-security.sh</code> script checks for common misconfigurations before we ever touch the cloud — a safety net before provisioning begins.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">HCL · Security Group Validation</span>
+      <pre><span class="comment">// "I've added validations to prevent accidental public exposure."</span>
+<span class="keyword">validation</span> {
+  condition     = !<span class="module-name">contains</span>(<span class="module-name">var</span>.allowed_ips, <span class="string">"0.0.0.0/0"</span>)
+  error_message = <span class="string">"allowed_ips cannot be 0.0.0.0/0 for security reasons."</span>
+}</pre>
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="section-number">05 · 2 min</div>
+      <h2>Testing & Quality: Ensuring Reliability</h2>
+    </div>
+    <div class="speaker-note">📋 Keep this brief but confident.</div>
+
+    <div class="script-box">
+      <p>"A pipeline is only as good as the code it carries. I've written <strong>comprehensive unit tests</strong> that verify our API endpoints and health checks. We also collect <strong>coverage reports</strong> to ensure that every critical path in the application is tested before it ever reaches the user."</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">🧪 What This Means</div>
+      <p>If any test fails, the entire pipeline aborts at Stage 3 — production is never touched. The last known-good deployment remains live, keeping users unaffected while the team fixes the issue.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 6 -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-number">06 · 5 min</div>
+      <h2>Closing & Future Roadmap</h2>
+    </div>
+    <div class="speaker-note">🚀 Finish strong. Show vision beyond the project.</div>
+
+    <div class="script-box">
+      <p>"To wrap up, this project demonstrates a <strong>complete DevOps lifecycle</strong>. We've moved from manual 'craftsmanship' to automated 'engineering'. Every commit is automatically tested, containerized, and deployed — with zero human intervention needed once the code is pushed."</p>
+    </div>
+
+    <h3>What's Next — The Roadmap</h3>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <span class="roadmap-icon">🔍</span>
+        <div>
+          <div class="rm-title">SonarQube</div>
+          <p>Add deep static code analysis and quality gates to the pipeline — blocking deployments that fall below defined code quality thresholds.</p>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <span class="roadmap-icon">⚖️</span>
+        <div>
+          <div class="rm-title">Auto Scaling Group</div>
+          <p>Replace the single EC2 instance with an ASG behind an Application Load Balancer to handle traffic spikes and eliminate single points of failure.</p>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <span class="roadmap-icon">🔔</span>
+        <div>
+          <div class="rm-title">Notification System</div>
+          <p>Integrate Slack or email notifications so the team is immediately alerted on pipeline success or failure — closing the feedback loop faster.</p>
+        </div>
+      </div>
+      <div class="roadmap-item">
+        <span class="roadmap-icon">📦</span>
+        <div>
+          <div class="rm-title">Kubernetes Migration</div>
+          <p>Move from bare Docker on EC2 to EKS for orchestration, rolling updates, self-healing, and service mesh capabilities at scale.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="script-box" style="margin-top:1.5rem;">
+      <p>"Thank you for your time. I am now open to any questions you may have regarding the <strong>pipeline</strong>, the <strong>infrastructure</strong>, or the <strong>security choices</strong> I've made."</p>
+    </div>
+  </div>
+
+  <!-- SECTION 7 — Q&A -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-number">07 · Q&A</div>
+      <h2>Common Defense Questions</h2>
+    </div>
+    <div class="speaker-note">❓ Memorize these. They will almost certainly be asked.</div>
+
+    <div class="qa-list">
+      <div class="qa-item">
+        <div class="qa-question">
+          <span class="qa-q-badge">Q1</span>
+          <p>Why did you choose Docker over deploying the app directly on EC2?</p>
+        </div>
+        <div class="qa-answer">
+          <strong>Answer:</strong> Docker guarantees environment consistency. If it works on my laptop, it will work on AWS — it completely eliminates the classic "works on my machine" problem. It also makes the deployment process faster and more portable; if I need to move to a different server or cloud provider, I just pull the same image.
+        </div>
+      </div>
+
+      <div class="qa-item">
+        <div class="qa-question">
+          <span class="qa-q-badge">Q2</span>
+          <p>What happens if a build fails mid-pipeline?</p>
+        </div>
+        <div class="qa-answer">
+          <strong>Answer:</strong> The pipeline fails immediately at the failing stage and sends a notification. It <em>never</em> touches the production server. The old, working version stays online — users experience zero service interruption while the team investigates and pushes a fix.
+        </div>
+      </div>
+
+      <div class="qa-item">
+        <div class="qa-question">
+          <span class="qa-q-badge">Q3</span>
+          <p>Why Terraform instead of just using the AWS Console?</p>
+        </div>
+        <div class="qa-answer">
+          <strong>Answer:</strong> Two reasons: <strong>Reproducibility</strong> and <strong>Version Control</strong>. With Terraform, I can destroy and recreate the entire infrastructure in minutes with one command. And since it's code, infrastructure changes are tracked in Git — I can see who changed what, when, and why. The AWS Console gives you none of that.
+        </div>
+      </div>
+
+      <div class="qa-item">
+        <div class="qa-question">
+          <span class="qa-q-badge">Q4</span>
+          <p>How did you handle sensitive credentials like Docker Hub passwords and SSH keys?</p>
+        </div>
+        <div class="qa-answer">
+          <strong>Answer:</strong> I never hardcode secrets in the Jenkinsfile or any config file. Docker Hub credentials are stored in the <strong>Jenkins Credentials Store</strong> and injected at runtime as environment variables. SSH keys for EC2 access are also managed through Jenkins credentials. For cloud-level secrets, I used <strong>AWS Secrets Manager</strong>.
+        </div>
+      </div>
+
+      <div class="qa-item">
+        <div class="qa-question">
+          <span class="qa-q-badge">Q5</span>
+          <p>What is the difference between Continuous Delivery and Continuous Deployment?</p>
+        </div>
+        <div class="qa-answer">
+          <strong>Answer:</strong> <strong>Continuous Delivery</strong> means every passing build is <em>ready</em> to deploy, but a human approves the final push to production. <strong>Continuous Deployment</strong> means every passing build is <em>automatically</em> deployed to production with no human gate. My pipeline implements Continuous Deployment — once all stages pass, the new version is live automatically.
+        </div>
+      </div>
+
+      <div class="qa-item">
+        <div class="qa-question">
+          <span class="qa-q-badge">Q6</span>
+          <p>What would you improve if you had more time?</p>
+        </div>
+        <div class="qa-answer">
+          <strong>Answer:</strong> I would add <strong>SonarQube</strong> for static code analysis and quality gates, move to an <strong>Auto Scaling Group</strong> with a Load Balancer for high availability, and integrate <strong>Slack notifications</strong> so the team gets instant feedback on every build. Long term, I'd explore migrating to <strong>Kubernetes (EKS)</strong> for better orchestration and scalability.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:1.5rem;">
+      <div class="callout-label">🎯 Final Tip</div>
+      <p>If you get a question you don't know — don't guess. Say: <em>"That's a great question. I didn't implement that in this version, but the way I would approach it is..."</em> Examiners respect honesty and forward thinking far more than a wrong confident answer.</p>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  <span>Project Defense · CI/CD Pipeline · Jenkins · Docker · AWS · Terraform</span>
+  <span>Total Duration: 20 Minutes</span>
+</footer>
+
+</body>
+</html>
