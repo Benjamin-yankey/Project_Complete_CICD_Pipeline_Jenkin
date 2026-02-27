@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="5" failures="0" errors="0" time="0.312">
+  <testsuite name="App Tests" errors="0" failures="0" skipped="0" timestamp="2026-02-27T11:00:03" time="0.269" tests="5">
+    <testcase classname="App Tests GET / should return HTML page" name="App Tests GET / should return HTML page" time="0.012">
+    </testcase>
+    <testcase classname="App Tests GET /health should return healthy status" name="App Tests GET /health should return healthy status" time="0.003">
+    </testcase>
+    <testcase classname="App Tests GET /api/info should return app info" name="App Tests GET /api/info should return app info" time="0.001">
+    </testcase>
+    <testcase classname="App Tests GET /api/info should return deployment time" name="App Tests GET /api/info should return deployment time" time="0.001">
+    </testcase>
+    <testcase classname="App Tests GET / should return proper HTML structure" name="App Tests GET / should return proper HTML structure" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>
