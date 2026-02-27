@@ -74,13 +74,13 @@ module "security_groups" {
 module "vpc_endpoints" {
   source = "./modules/vpc-endpoints"
 
-  project_name      = var.project_name
-  environment       = var.environment
-  vpc_id            = module.vpc.vpc_id
+  project_name    = var.project_name
+  environment     = var.environment
+  vpc_id          = module.vpc.vpc_id
   vpc_cidr        = var.vpc_cidr
-  aws_region        = var.aws_region
-  subnet_ids        = module.vpc.public_subnets
-  route_table_ids   = module.vpc.public_route_table_ids
+  aws_region      = var.aws_region
+  subnet_ids      = module.vpc.public_subnets
+  route_table_ids = module.vpc.public_route_table_ids
 }
 
 # IAM Module: Manages roles and permissions for EC2 instances
@@ -140,6 +140,6 @@ module "app_server" {
   subnet_id          = module.vpc.public_subnets[1]
   security_group_ids = [module.security_groups.app_sg_id]
   # Initialize server with custom setup script
-  user_data          = file("${path.module}/scripts/app-server-setup.sh")
-  volume_size        = var.app_volume_size
+  user_data   = file("${path.module}/scripts/app-server-setup.sh")
+  volume_size = var.app_volume_size
 }
