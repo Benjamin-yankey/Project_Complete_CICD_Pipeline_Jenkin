@@ -1,19 +1,25 @@
+// Main pipeline definition
 pipeline {
-    agent any
+    agent any // Runs on any available Jenkins agent
 
+    // Parameters for manual trigger
     parameters {
         string(name: 'EC2_HOST', description: 'Public IP of the app server EC2 instance (from Terraform output: app_server_public_ip)')
     }
 
+    // Global environment variables
     environment {
         DOCKER_IMAGE = "cicd-node-app"
         DOCKER_TAG = "${BUILD_NUMBER}"
         REGISTRY = "docker.io"
+        // Credentials stored in Jenkins
         REGISTRY_CREDS = credentials('registry_creds')
         CONTAINER_NAME = "node-app"
     }
     
+    // Stages of the CI/CD pipeline
     stages {
+        // Step 1: Clone the source code
         stage('Checkout') {
             steps {
                 echo 'Checking out code from repository...'
@@ -21,6 +27,7 @@ pipeline {
             }
         }
         
+        // Step 2: Install Node.js dependencies
         stage('Install/Build') {
             steps {
                 echo 'Installing dependencies...'
@@ -30,6 +37,7 @@ pipeline {
             }
         }
         
+        // Step 3: Run unit tests and generate coverage report
         stage('Test') {
             steps {
                 echo 'Running unit tests...'
@@ -37,6 +45,7 @@ pipeline {
                     npm test -- --coverage
                 '''
             }
+            // Always archive test results
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'test-results/*.xml'
@@ -44,6 +53,7 @@ pipeline {
             }
         }
         
+        // Step 4: Build multi-architecture Docker image
         stage('Docker Build') {
             steps {
                 echo 'Building Docker image...'
@@ -61,6 +71,7 @@ pipeline {
             }
         }
         
+        // Step 5: Push the built Docker image to Docker Hub
         stage('Push Image') {
             steps {
                 echo 'Pushing image to registry...'
@@ -76,7 +87,9 @@ pipeline {
             }
         }
         
+        // Step 6: Deploy the application to AWS EC2
         stage('Deploy') {
+            // Only run if EC2 host IP is provided
             when {
                 expression { params.EC2_HOST != null && params.EC2_HOST != '' }
             }
@@ -84,6 +97,7 @@ pipeline {
                 echo 'Deploying to EC2...'
                 script {
                     try {
+                        // Use SSH credentials to connect to EC2
                         withCredentials([sshUserPrivateKey(credentialsId: 'ec2_ssh', keyFileVariable: 'SSH_KEY')]) {
                             sh '''
                                 ssh -i $SSH_KEY -o StrictHostKeyChecking=no ec2-user@${EC2_HOST} << EOF
@@ -91,9 +105,11 @@ pipeline {
                                     docker stop ${CONTAINER_NAME} || true
                                     docker rm ${CONTAINER_NAME} || true
                                     
-                                    # Pull and run new container
+                                    # Login and pull latest image
                                     echo $REGISTRY_CREDS_PSW | docker login -u $REGISTRY_CREDS_USR --password-stdin
                                     docker pull $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
+                                    
+                                    # Run the new container with health checks
                                     docker run -d \
                                       --name ${CONTAINER_NAME} \
                                       --restart unless-stopped \
@@ -105,24 +121,25 @@ pipeline {
                                       -e APP_VERSION=${BUILD_NUMBER} \
                                       $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest
                                     
-                                    # Wait for health check
+                                    # Wait and verify deployment
                                     sleep 10
                                     docker ps --filter name=${CONTAINER_NAME} --format "{{.Status}}"
                                     
-                                    # Cleanup old images
+                                    # Prune unused images
                                     docker image prune -af
 EOF
                             '''
                         }
                     } catch (Exception e) {
-                        echo "⚠️ Deploy skipped: ${e.message}"
-                        echo "To enable deployment, add 'ec2_ssh' credential in Jenkins"
+                        echo "⚠️ Deploy skipped or failed: ${e.message}"
+                        echo "Ensure 'ec2_ssh' credentials exist in Jenkins and EC2 is reachable."
                     }
                 }
             }
         }
     }
     
+    // Global post actions
     post {
         always {
             echo 'Cleaning up local Docker images...'

@@ -1,3 +1,4 @@
+# Terraform configuration and provider requirements
 terraform {
   required_version = ">= 1.0"
   required_providers {
@@ -8,6 +9,7 @@ terraform {
   }
 }
 
+# AWS Provider configuration with default tags for all resources
 provider "aws" {
   region = var.aws_region
 
@@ -20,7 +22,7 @@ provider "aws" {
   }
 }
 
-# Data sources
+# Data sources to fetch availability zones and latest Amazon Linux AMI
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -35,7 +37,7 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-# VPC Module
+# VPC Module: Sets up network infrastructure (VPC, Subnets, Route Tables)
 module "vpc" {
   source = "./modules/vpc"
 
@@ -47,7 +49,7 @@ module "vpc" {
   private_subnets    = var.private_subnets
 }
 
-# Key Pair Module
+# Key Pair Module: Manages SSH key access for EC2 instances
 module "keypair" {
   source = "./modules/keypair"
 
@@ -56,7 +58,7 @@ module "keypair" {
   key_name     = var.key_name
 }
 
-# Security Groups Module
+# Security Groups Module: Defines firewall rules for Jenkins and App servers
 module "security_groups" {
   source = "./modules/security"
 
@@ -68,20 +70,20 @@ module "security_groups" {
   app_allowed_ips = var.app_allowed_ips
 }
 
-# VPC Endpoints Module
+# VPC Endpoints Module: Enables secure, private communication with AWS services
 module "vpc_endpoints" {
   source = "./modules/vpc-endpoints"
 
   project_name      = var.project_name
   environment       = var.environment
   vpc_id            = module.vpc.vpc_id
-  vpc_cidr          = var.vpc_cidr
+  vpc_cidr        = var.vpc_cidr
   aws_region        = var.aws_region
   subnet_ids        = module.vpc.public_subnets
   route_table_ids   = module.vpc.public_route_table_ids
 }
 
-# IAM Module
+# IAM Module: Manages roles and permissions for EC2 instances
 module "iam" {
   source = "./modules/iam"
 
@@ -90,7 +92,7 @@ module "iam" {
   secret_arn   = module.secrets.secret_arn
 }
 
-# Secrets Manager Module
+# Secrets Manager Module: Securely stores sensitive credentials
 module "secrets" {
   source = "./modules/secrets"
 
@@ -99,7 +101,7 @@ module "secrets" {
   jenkins_admin_password = var.jenkins_admin_password
 }
 
-# Jenkins EC2 Module
+# Jenkins EC2 Module: Provisions the Jenkins automation server
 module "jenkins" {
   source = "./modules/jenkins"
 
@@ -115,7 +117,7 @@ module "jenkins" {
   volume_size          = var.jenkins_volume_size
 }
 
-# Monitoring Module
+# Monitoring Module: Sets up CloudWatch dashboards and alarms
 module "monitoring" {
   source = "./modules/monitoring"
 
@@ -126,7 +128,7 @@ module "monitoring" {
   vpc_id              = module.vpc.vpc_id
 }
 
-# Application EC2 Module
+# Application EC2 Module: Provisions the web application server
 module "app_server" {
   source = "./modules/ec2"
 
@@ -137,6 +139,7 @@ module "app_server" {
   key_name           = module.keypair.key_name
   subnet_id          = module.vpc.public_subnets[1]
   security_group_ids = [module.security_groups.app_sg_id]
+  # Initialize server with custom setup script
   user_data          = file("${path.module}/scripts/app-server-setup.sh")
   volume_size        = var.app_volume_size
 }

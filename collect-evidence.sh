@@ -3,27 +3,28 @@
 # CI/CD Pipeline Evidence Collection Script
 # This script automates the collection of logs and evidence for project submission
 
+# Stop execution if any command fails
 set -e
 
-# Colors for output
+# ANSI Color codes for formatted console output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
+# Initial setup and sanity checks
 echo -e "${YELLOW}🔧 CI/CD Pipeline Evidence Collection${NC}"
 echo "========================================"
 echo ""
 
-# Check if terraform directory exists
+# Verify the script is running from the project root (where terraform directory is)
 if [ ! -d "terraform" ]; then
     echo -e "${RED}❌ Error: terraform directory not found${NC}"
     echo "Please run this script from the project root directory"
     exit 1
 fi
 
-# Get EC2 IP from Terraform output
+# Retrieve EC2 IP addresses from Terraform output
 cd terraform
 if [ ! -f "terraform.tfstate" ]; then
     echo -e "${RED}❌ Error: Terraform state not found${NC}"
@@ -32,9 +33,11 @@ if [ ! -f "terraform.tfstate" ]; then
 fi
 
 echo -e "${GREEN}📡 Getting EC2 IP from Terraform...${NC}"
+# Extract public IPs using terraform output command
 EC2_IP=$(terraform output -raw app_server_public_ip 2>/dev/null || echo "")
 JENKINS_IP=$(terraform output -raw jenkins_public_ip 2>/dev/null || echo "")
 
+# Ensure the App Server IP was successfully retrieved
 if [ -z "$EC2_IP" ]; then
     echo -e "${RED}❌ Error: Could not get EC2 IP from Terraform${NC}"
     echo "Please ensure Terraform has been applied successfully"
@@ -45,7 +48,7 @@ echo -e "${GREEN}✅ App Server IP: $EC2_IP${NC}"
 echo -e "${GREEN}✅ Jenkins IP: $JENKINS_IP${NC}"
 cd ..
 
-# Find SSH key
+# Locate an SSH private key (.pem file) in the project directory
 SSH_KEY=$(find . -name "*.pem" -type f | head -n 1)
 if [ -z "$SSH_KEY" ]; then
     echo -e "${YELLOW}⚠️  Warning: No .pem file found in project directory${NC}"
@@ -56,21 +59,21 @@ fi
 echo -e "${GREEN}🔑 Using SSH key: $SSH_KEY${NC}"
 echo ""
 
-# Create directories
+# Initialize directories for artifacts
 echo -e "${GREEN}📁 Creating directories...${NC}"
 mkdir -p screenshots logs evidence
 
-# Collect logs
+# Begin data collection process
 echo ""
 echo -e "${GREEN}📋 Collecting logs and evidence...${NC}"
 echo "========================================"
 
-# 1. Test results
+# 1. Capture unit test execution results
 echo -e "${YELLOW}[1/8]${NC} Running tests and collecting results..."
 npm test > logs/test-results.txt 2>&1 || echo "Tests completed with status: $?"
 echo -e "${GREEN}✅ Test results saved${NC}"
 
-# 2. Terraform state
+# 2. Capture Terraform infrastructure state and outputs
 echo -e "${YELLOW}[2/8]${NC} Collecting Terraform state..."
 cd terraform
 terraform state list > ../logs/terraform-state.txt 2>/dev/null || echo "Terraform state list failed"
@@ -79,7 +82,7 @@ terraform output >> ../logs/terraform-state.txt 2>/dev/null || echo "Terraform o
 cd ..
 echo -e "${GREEN}✅ Terraform state saved${NC}"
 
-# 3. Application responses
+# 3. Capture HTTP responses from the deployed application
 echo -e "${YELLOW}[3/8]${NC} Collecting application responses..."
 {
     echo "=== Root Endpoint ==="
@@ -91,7 +94,7 @@ echo -e "${YELLOW}[3/8]${NC} Collecting application responses..."
 } > logs/app-responses.txt
 echo -e "${GREEN}✅ Application responses saved${NC}"
 
-# 4. Docker images on EC2
+# 4. List Docker images present on the remote EC2 instance
 echo -e "${YELLOW}[4/8]${NC} Collecting Docker images from EC2..."
 if [ -f "$SSH_KEY" ]; then
     ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$SSH_KEY" ec2-user@$EC2_IP "docker images" > logs/docker-images.txt 2>/dev/null || echo "Could not connect to EC2 via SSH"
@@ -101,7 +104,7 @@ else
     echo "Manual command: ssh -i your-key.pem ec2-user@$EC2_IP 'docker images' > logs/docker-images.txt"
 fi
 
-# 5. Container logs
+# 5. Capture logs from the running application container on EC2
 echo -e "${YELLOW}[5/8]${NC} Collecting container logs from EC2..."
 if [ -f "$SSH_KEY" ]; then
     ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$SSH_KEY" ec2-user@$EC2_IP "docker logs node-app 2>&1" > logs/container-logs.txt 2>/dev/null || echo "Could not get container logs"
@@ -111,7 +114,7 @@ else
     echo "Manual command: ssh -i your-key.pem ec2-user@$EC2_IP 'docker logs node-app' > logs/container-logs.txt"
 fi
 
-# 6. Container status
+# 6. Check the status of running containers on EC2
 echo -e "${YELLOW}[6/8]${NC} Collecting container status from EC2..."
 if [ -f "$SSH_KEY" ]; then
     ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$SSH_KEY" ec2-user@$EC2_IP "docker ps" > logs/container-status.txt 2>/dev/null || echo "Could not get container status"
@@ -121,12 +124,12 @@ else
     echo "Manual command: ssh -i your-key.pem ec2-user@$EC2_IP 'docker ps' > logs/container-status.txt"
 fi
 
-# 7. Project structure
+# 7. Document the overall project file structure
 echo -e "${YELLOW}[7/8]${NC} Documenting project structure..."
 tree -L 3 -I 'node_modules|.terraform|.git' > logs/project-structure.txt 2>/dev/null || ls -R > logs/project-structure.txt
 echo -e "${GREEN}✅ Project structure saved${NC}"
 
-# 8. Package information
+# 8. Capture local environment information (Node.js/NPM versions)
 echo -e "${YELLOW}[8/8]${NC} Collecting package information..."
 {
     echo "=== Node.js Version ==="
@@ -138,7 +141,7 @@ echo -e "${YELLOW}[8/8]${NC} Collecting package information..."
 } > logs/package-info.txt 2>&1
 echo -e "${GREEN}✅ Package information saved${NC}"
 
-# Create README for evidence
+# Generate a README summary for the collected evidence
 echo ""
 echo -e "${GREEN}📝 Creating evidence README...${NC}"
 cat > logs/README.md << 'EOF'
@@ -189,11 +192,12 @@ docker logs node-app
 ## Collection Timestamp
 EOF
 
+# Append the collection date to the README
 date >> logs/README.md
 
 echo -e "${GREEN}✅ Evidence README created${NC}"
 
-# Create summary
+# Final output summary
 echo ""
 echo -e "${GREEN}📊 Evidence Collection Summary${NC}"
 echo "========================================"

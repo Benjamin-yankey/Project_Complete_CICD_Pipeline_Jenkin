@@ -1,17 +1,26 @@
+# Docker Compose version definition
 version: '3.8'
 
+# Services to be managed by Docker Compose
 services:
+  # Application service
   app:
+    # Build configuration for the application image
     build:
       context: .
       dockerfile: Dockerfile
+    # Set a custom name for the container
     container_name: cicd-node-app
+    # Map host port 5000 to container port 5000
     ports:
       - "5000:5000"
+    # Set environment variables for the development environment
     environment:
       - NODE_ENV=development
       - APP_VERSION=local
+    # Policy to restart the container if it stops unexpectedly
     restart: unless-stopped
+    # Health check configuration to monitor container status
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s

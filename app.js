@@ -1,13 +1,20 @@
+// Import necessary modules
 const express = require('express');
 const app = express();
+// Define the port for the application, defaulting to 5000
 const port = process.env.PORT || 5000;
 
+// Track the deployment time of the application
 const deploymentTime = new Date().toISOString();
+// Get the application version from environment variables or default to 1.0.0
 const version = process.env.APP_VERSION || '1.0.0';
 
+// Middleware for parsing JSON requests
 app.use(express.json());
+// Serve static files from the 'public' directory
 app.use(express.static('public'));
 
+// Root endpoint: Returns a HTML page with application info
 app.get('/', (req, res) => {
     res.send(`
 <!DOCTYPE html>
@@ -36,6 +43,7 @@ app.get('/', (req, res) => {
     `);
 });
 
+// API Info endpoint: Returns application version and status in JSON format
 app.get('/api/info', (req, res) => {
     res.json({
         version,
@@ -44,16 +52,19 @@ app.get('/api/info', (req, res) => {
     });
 });
 
+// Health check endpoint for monitoring systems and container health checks
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: "healthy"
     });
 });
 
+// Start the server if the file is run directly
 if (require.main === module) {
     app.listen(port, '0.0.0.0', () => {
         console.log(`Server running on port ${port}`);
     });
 }
 
+// Export the app for testing purposes
 module.exports = app;
