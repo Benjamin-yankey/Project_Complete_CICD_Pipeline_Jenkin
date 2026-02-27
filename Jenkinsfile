@@ -71,7 +71,64 @@ pipeline {
             }
         }
         
-        // Step 5: Push the built Docker image to Docker Hub
+        // Step 5: Test the Docker container
+        stage('Docker Test') {
+            steps {
+                echo 'Testing Docker container...'
+                sh '''
+                    # Run the container in detached mode
+                    docker run -d \
+                      --name ${DOCKER_IMAGE}-test \
+                      -p 5001:5000 \
+                      -e APP_VERSION=${BUILD_NUMBER} \
+                      ${DOCKER_IMAGE}:latest
+                    
+                    # Wait for container to start
+                    sleep 5
+                    
+                    # Test health endpoint
+                    echo "Testing health endpoint..."
+                    HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health)
+                    if [ "$HEALTH_RESPONSE" != "200" ]; then
+                        echo "Health check failed! Expected 200, got $HEALTH_RESPONSE"
+                        docker stop ${DOCKER_IMAGE}-test || true
+                        docker rm ${DOCKER_IMAGE}-test || true
+                        exit 1
+                    fi
+                    echo "Health endpoint passed!"
+                    
+                    # Test root endpoint
+                    echo "Testing root endpoint..."
+                    ROOT_RESPONSE=$(curl -s http://localhost:5001/)
+                    if ! echo "$ROOT_RESPONSE" | grep -q "CI/CD Pipeline App"; then
+                        echo "Root endpoint test failed!"
+                        docker stop ${DOCKER_IMAGE}-test || true
+                        docker rm ${DOCKER_IMAGE}-test || true
+                        exit 1
+                    fi
+                    echo "Root endpoint passed!"
+                    
+                    # Test API info endpoint
+                    echo "Testing API info endpoint..."
+                    API_RESPONSE=$(curl -s http://localhost:5001/api/info)
+                    if ! echo "$API_RESPONSE" | grep -q "version"; then
+                        echo "API info endpoint test failed!"
+                        docker stop ${DOCKER_IMAGE}-test || true
+                        docker rm ${DOCKER_IMAGE}-test || true
+                        exit 1
+                    fi
+                    echo "API info endpoint passed!"
+                    
+                    # Stop and remove the test container
+                    docker stop ${DOCKER_IMAGE}-test
+                    docker rm ${DOCKER_IMAGE}-test
+                    
+                    echo "All Docker container tests passed!"
+                '''
+            }
+        }
+        
+        // Step 6: Push the built Docker image to Docker Hub
         stage('Push Image') {
             steps {
                 echo 'Pushing image to registry...'
@@ -87,7 +144,7 @@ pipeline {
             }
         }
         
-        // Step 6: Deploy the application to AWS EC2
+        // Step 7: Deploy the application to AWS EC2
         stage('Deploy') {
             // Only run if EC2 host IP is provided
             when {

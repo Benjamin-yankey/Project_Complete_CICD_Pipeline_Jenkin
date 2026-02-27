@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1772190003916" clover="3.2.0">
-  <project timestamp="1772190003916" name="All files">
+<coverage generated="1772190551744" clover="3.2.0">
+  <project timestamp="1772190551744" name="All files">
     <metrics statements="17" coveredstatements="15" conditionals="6" coveredconditionals="5" methods="4" coveredmethods="3" elements="27" coveredelements="23" complexity="0" loc="17" ncloc="17" packages="1" files="1" classes="1"/>
     <file name="app.js" path="/Users/huey/Desktop/Amalitech/Project_Complete_CICD_Pipeline_Jenkins/app.js">
       <metrics statements="17" coveredstatements="15" conditionals="6" coveredconditionals="5" methods="4" coveredmethods="3"/>
