@@ -5,6 +5,7 @@ pipeline {
     // Parameters for manual trigger
     parameters {
         string(name: 'EC2_HOST', description: 'Public IP of the app server EC2 instance (from Terraform output: app_server_public_ip)')
+        booleanParam(name: 'SKIP_SECURITY_SCAN', defaultValue: false, description: 'Skip security scanning (use for trusted builds)')
     }
 
     // Global environment variables
@@ -27,13 +28,41 @@ pipeline {
             }
         }
         
-        // Step 2: Install Node.js dependencies
-        stage('Install/Build') {
-            steps {
-                echo 'Installing dependencies...'
-                sh '''
-                    npm ci
-                '''
+        // Step 2: Install Node.js dependencies and run security scans in parallel
+        stage('Install & Security Scan') {
+            parallel {
+                // Install dependencies
+                stage('Install/Build') {
+                    steps {
+                        echo 'Installing dependencies...'
+                        sh '''
+                            npm ci
+                        '''
+                    }
+                }
+                
+                // npm audit for dependency vulnerabilities
+                stage('npm Audit') {
+                    when {
+                        expression { params.SKIP_SECURITY_SCAN == false }
+                    }
+                    steps {
+                        echo 'Running npm audit for dependency vulnerabilities...'
+                        sh '''
+                            npm audit --audit-level=high || true
+                        '''
+                    }
+                }
+                
+                // ESLint for code quality
+                stage('Lint') {
+                    steps {
+                        echo 'Running ESLint for code quality...'
+                        sh '''
+                            npm run lint || true
+                        '''
+                    }
+                }
             }
         }
         
@@ -71,60 +100,88 @@ pipeline {
             }
         }
         
-        // Step 5: Test the Docker container
-        stage('Docker Test') {
-            steps {
-                echo 'Testing Docker container...'
-                sh '''
-                    # Run the container in detached mode
-                    docker run -d \
-                      --name ${DOCKER_IMAGE}-test \
-                      -p 5001:5000 \
-                      -e APP_VERSION=${BUILD_NUMBER} \
-                      ${DOCKER_IMAGE}:latest
-                    
-                    # Wait for container to start
-                    sleep 5
-                    
-                    # Test health endpoint
-                    echo "Testing health endpoint..."
-                    HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health)
-                    if [ "$HEALTH_RESPONSE" != "200" ]; then
-                        echo "Health check failed! Expected 200, got $HEALTH_RESPONSE"
-                        docker stop ${DOCKER_IMAGE}-test || true
-                        docker rm ${DOCKER_IMAGE}-test || true
-                        exit 1
-                    fi
-                    echo "Health endpoint passed!"
-                    
-                    # Test root endpoint
-                    echo "Testing root endpoint..."
-                    ROOT_RESPONSE=$(curl -s http://localhost:5001/)
-                    if ! echo "$ROOT_RESPONSE" | grep -q "CI/CD Pipeline App"; then
-                        echo "Root endpoint test failed!"
-                        docker stop ${DOCKER_IMAGE}-test || true
-                        docker rm ${DOCKER_IMAGE}-test || true
-                        exit 1
-                    fi
-                    echo "Root endpoint passed!"
-                    
-                    # Test API info endpoint
-                    echo "Testing API info endpoint..."
-                    API_RESPONSE=$(curl -s http://localhost:5001/api/info)
-                    if ! echo "$API_RESPONSE" | grep -q "version"; then
-                        echo "API info endpoint test failed!"
-                        docker stop ${DOCKER_IMAGE}-test || true
-                        docker rm ${DOCKER_IMAGE}-test || true
-                        exit 1
-                    fi
-                    echo "API info endpoint passed!"
-                    
-                    # Stop and remove the test container
-                    docker stop ${DOCKER_IMAGE}-test
-                    docker rm ${DOCKER_IMAGE}-test
-                    
-                    echo "All Docker container tests passed!"
-                '''
+        // Step 5: Run security scans on Docker image in parallel with container tests
+        stage('Security Scan & Test') {
+            parallel {
+                // Trivy container security scan
+                stage('Trivy Security Scan') {
+                    when {
+                        expression { params.SKIP_SECURITY_SCAN == false }
+                    }
+                    steps {
+                        echo 'Running Trivy security scan on Docker image...'
+                        sh '''
+                            # Install Trivy if not present
+                            if ! command -v trivy &> /dev/null; then
+                                echo "Installing Trivy..."
+                                brew install trivy || apt-get install -y trivy || true
+                            fi
+                            
+                            # Run Trivy scan (exit 0 to not fail on vulnerabilities, just report)
+                            trivy image --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-results.json ${DOCKER_IMAGE}:${DOCKER_TAG} || true
+                            trivy image --severity HIGH,CRITICAL --exit-code 0 ${DOCKER_IMAGE}:${DOCKER_TAG} || true
+                            
+                            echo "Trivy scan completed. See trivy-results.json for details."
+                        '''
+                    }
+                }
+                
+                // Test the Docker container
+                stage('Docker Test') {
+                    steps {
+                        echo 'Testing Docker container...'
+                        sh '''
+                            # Run the container in detached mode
+                            docker run -d \
+                              --name ${DOCKER_IMAGE}-test \
+                              -p 5001:5000 \
+                              -e APP_VERSION=${BUILD_NUMBER} \
+                              ${DOCKER_IMAGE}:latest
+                            
+                            # Wait for container to start
+                            sleep 5
+                            
+                            # Test health endpoint
+                            echo "Testing health endpoint..."
+                            HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health)
+                            if [ "$HEALTH_RESPONSE" != "200" ]; then
+                                echo "Health check failed! Expected 200, got $HEALTH_RESPONSE"
+                                docker stop ${DOCKER_IMAGE}-test || true
+                                docker rm ${DOCKER_IMAGE}-test || true
+                                exit 1
+                            fi
+                            echo "Health endpoint passed!"
+                            
+                            # Test root endpoint
+                            echo "Testing root endpoint..."
+                            ROOT_RESPONSE=$(curl -s http://localhost:5001/)
+                            if ! echo "$ROOT_RESPONSE" | grep -q "CI/CD Pipeline App"; then
+                                echo "Root endpoint test failed!"
+                                docker stop ${DOCKER_IMAGE}-test || true
+                                docker rm ${DOCKER_IMAGE}-test || true
+                                exit 1
+                            fi
+                            echo "Root endpoint passed!"
+                            
+                            # Test API info endpoint
+                            echo "Testing API info endpoint..."
+                            API_RESPONSE=$(curl -s http://localhost:5001/api/info)
+                            if ! echo "$API_RESPONSE" | grep -q "version"; then
+                                echo "API info endpoint test failed!"
+                                docker stop ${DOCKER_IMAGE}-test || true
+                                docker rm ${DOCKER_IMAGE}-test || true
+                                exit 1
+                            fi
+                            echo "API info endpoint passed!"
+                            
+                            # Stop and remove the test container
+                            docker stop ${DOCKER_IMAGE}-test
+                            docker rm ${DOCKER_IMAGE}-test
+                            
+                            echo "All Docker container tests passed!"
+                        '''
+                    }
+                }
             }
         }
         
@@ -206,6 +263,8 @@ EOF
                 docker rmi $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:${DOCKER_TAG} || true
                 docker rmi $REGISTRY_CREDS_USR/${DOCKER_IMAGE}:latest || true
             '''
+            // Archive Trivy results if available
+            archiveArtifacts artifacts: 'trivy-results.json', allowEmptyArchive: true
         }
         success {
             echo '✅ Pipeline completed successfully!'
